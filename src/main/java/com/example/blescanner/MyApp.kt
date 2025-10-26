@@ -102,11 +102,21 @@ class MyApp : Application() {
             beacons.forEach { b ->
                 if (b.id1.toString().equals("e2c56db5-dffb-48d2-b060-d0f5a71096e0", ignoreCase = true) &&
                     b.id2.toInt() == 1 && b.id3.toInt() == 1) {
-                    // Spróbuj połączyć, jeśli urządzenie jest (najprawdopodobniej)  connectable
-                    val mac = b.bluetoothAddress    // może być null, albo losowy (RPA)
+                    // Spróbuj połączyć, jeśli urządzenie jest (najprawdopodobniej) connectable
+                    val mac = b.bluetoothAddress // może być null albo RPA (rotujący)
                     if (!mac.isNullOrBlank()) {
-                        GattClient.get(this).connectIfNeeded(mac)
-                    }
+                            val now = System.currentTimeMillis()
+                            if (now - lastConnectAttemptAt > CONNECT_COOLDOWN_MS) {
+                                    lastConnectAttemptAt = now
+                                    Log.i("BLE", "Target beacon detected ($mac) → trying GATT connect")
+                                    // ważne: użyj kontekstu aplikacji
+                                    GattClient.get(this@MyApp).connectIfNeeded(mac)
+                               } else {
+                                    Log.d("BLE", "Skip connect: cooldown")
+                                }
+                        } else {
+                    Log.w("BLE", "Target beacon detected but MAC is null/blank – cannot connect")
+                                    }
                 }
             }
         }
